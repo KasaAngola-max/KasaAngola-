@@ -1,6 +1,6 @@
 # 🏠 KasaAngola
 
-**A primeira plataforma imobiliária digital angolana — sem intermediários.**
+**Uma plataforma imobiliária digital angolana — sem intermediários.**
 
 Fundada por **Isaac Ndala Pedro** · Luanda, Angola 🇦🇴
 
