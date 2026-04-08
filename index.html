@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<title>KasaAngola</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#0c0c0c;color:#f2f2f2;min-height:100vh}
+input,button,select,textarea{font-family:inherit}
+.inp{width:100%;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:10px;padding:12px 14px;font-size:15px;color:#f2f2f2;outline:none;margin-bottom:12px}
+.inp:focus{border-color:#cc0000}
+.btn-r{width:100%;padding:14px;background:#cc0000;border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px}
+.btn-g{width:100%;padding:12px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:12px;color:#777;font-size:14px;cursor:pointer}
+/* LOADING */
+#ldg{position:fixed;inset:0;background:#0c0c0c;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.ld-logo{font-size:36px;font-weight:800;animation:pulse 1.5s infinite}.ld-logo span{color:#cc0000}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.ld-dots{display:flex;gap:8px}
+.ld-dot{width:10px;height:10px;border-radius:50%;background:#cc0000;animation:bnc 1.2s infinite}
+.ld-dot:nth-child(2){animation-delay:.2s}.ld-dot:nth-child(3){animation-delay:.4s}
+@keyframes bnc{0%,80%,100%{transform:scale(.8);opacity:.5}40%{transform:scale(1.2);opacity:1}}
+/* AUTH */
+#auth{position:fixed;inset:0;background:#0c0c0c;z-index:998;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+#auth.vis{display:flex}
+.abox{background:#1a1a1a;border:1px solid #2e2e2e;border-radius:22px;padding:28px;width:100%;max-width:400px}
+.atabs{display:flex;background:#0c0c0c;border-radius:12px;padding:4px;margin-bottom:20px}
+.atab{flex:1;padding:10px;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;background:transparent;color:#555}
+.atab.on{background:#cc0000;color:#fff}
+.merr{color:#ff6666;font-size:13px;text-align:center;margin-bottom:10px;padding:10px;background:#2a0000;border-radius:10px;border:1px solid #cc0000;display:none}
+/* DOCS */
+#docs{position:fixed;inset:0;background:#0c0c0c;z-index:997;display:none;overflow-y:auto;padding:20px}
+.dcard{background:#1a1a1a;border:1px solid #2e2e2e;border-radius:14px;padding:16px;margin-bottom:14px}
+.dcard.ok{border-color:#16a34a}
+.darea{border:2px dashed #333;border-radius:10px;padding:18px;text-align:center;cursor:pointer;margin-bottom:8px}
+.darea.tem{border-color:#16a34a;background:#0a1a0a}
+.dprev{width:100%;max-height:120px;object-fit:cover;border-radius:8px;margin-top:8px;display:none}
+.dtabs{display:flex;background:#0c0c0c;border-radius:10px;padding:3px;margin-bottom:12px}
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:#111;border-bottom:1px solid #222;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.logo{font-size:20px;font-weight:800}.logo span{color:#cc0000}
+.avbtn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;font-size:15px;border:none;overflow:hidden}
+.nav{display:flex;background:#111;border-top:1px solid #222;flex-shrink:0}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 0 6px;cursor:pointer;color:#555;font-size:10px;font-weight:600;gap:3px}
+.ni.on{color:#cc0000}
+.tela{display:none;flex:1;overflow-y:auto;padding:16px}
+.tela.on{display:block}
+.fbtn{background:#1a1a1a;color:#555;border:1px solid #2e2e2e;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer}
+.fbtn.on{background:#cc0000;color:#fff;border-color:#cc0000}
+/* CARDS */
+.card{background:#1a1a1a;border:1px solid #2e2e2e;border-radius:14px;overflow:hidden;margin-bottom:14px;cursor:pointer}
+.cimg{width:100%;height:160px;background:linear-gradient(135deg,#1a0000,#0a1628);display:flex;align-items:center;justify-content:center;font-size:55px;position:relative;overflow:hidden}
+.cimg img,.cimg video{width:100%;height:100%;object-fit:cover}
+.tag{position:absolute;top:10px;left:10px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.tag-a{background:#2563eb;color:#fff}.tag-v{background:#16a34a;color:#fff}
+.cbody{padding:14px}
+/* DETALHE */
+#det{display:none;position:fixed;inset:0;background:#0c0c0c;z-index:100;overflow-y:auto}
+.dhead{background:#111;border-bottom:1px solid #222;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.bback{color:#cc0000;font-weight:700;cursor:pointer;font-size:14px;background:none;border:none;padding:4px 8px}
+.dimg{width:100%;height:200px;background:linear-gradient(135deg,#1a0000,#0a1628);display:flex;align-items:center;justify-content:center;font-size:80px;overflow:hidden}
+.dbody{padding:16px}
+.dpreco{font-size:26px;font-weight:800;color:#cc0000;margin-bottom:6px}
+.dfeats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.fbox{background:#1a1a1a;border:1px solid #2e2e2e;border-radius:10px;padding:8px 14px;font-size:13px}
+.ddesc{font-size:14px;line-height:1.7;color:#bbb;margin-bottom:16px}
+.cbox{border-radius:14px;padding:16px;margin-bottom:16px}
+.clock{background:linear-gradient(135deg,#0a0a20,#15103a);border:1px solid #7c3aed}
+.copen{background:linear-gradient(135deg,#0a1f0a,#0a1a0a);border:1px solid #16a34a}
+.aviso{background:#1a0a00;border:1px solid #f97316;border-radius:12px;padding:14px;font-size:12px;color:#ffccaa;line-height:1.7;margin-bottom:16px}
+.dacoes{display:flex;gap:10px;padding:16px;position:sticky;bottom:0;background:#0c0c0c;border-top:1px solid #222}
+.bac{flex:1;padding:13px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer}
+/* MODAL */
+.mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:flex-end;justify-content:center}
+.mov.on{display:flex}
+.mbox{background:#1a1a1a;border:1px solid #2e2e2e;border-radius:22px 22px 0 0;padding:24px;width:100%;max-height:92vh;overflow-y:auto}
+.mh{width:36px;height:4px;background:#333;border-radius:4px;margin:0 auto 16px}
+.iban{background:#0a1a0a;border:2px solid #16a34a;border-radius:12px;padding:14px;margin-bottom:10px}
+.ibanlabel{font-size:12px;font-weight:700;color:#16a34a;margin-bottom:6px}
+.ibannum{font-size:14px;font-weight:800;color:#fff;font-family:monospace;cursor:pointer;background:#0c0c0c;border:1px solid #16a34a;border-radius:8px;padding:10px;width:100%;text-align:center}
+.mcnum{font-size:22px;font-weight:800;color:#16a34a;font-family:monospace;cursor:pointer;background:#0c0c0c;border:2px solid #16a34a;border-radius:10px;padding:12px;width:100%;text-align:center}
+/* CHAT */
+.ci{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid #1a1a1a;cursor:pointer}
+.cav{width:44px;height:44px;border-radius:50%;background:#cc0000;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;color:#fff}
+.cwin{display:none;flex-direction:column;height:calc(100vh - 56px);position:fixed;inset:0;top:56px;background:#0c0c0c;z-index:50}
+.cwin.on{display:flex}
+.msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:75%;padding:10px 14px;font-size:13px;line-height:1.5;border-radius:14px}
+.msg.rec{align-self:flex-start;background:#1a1a1a}
+.msg.env{align-self:flex-end;background:#4a0000;color:#ffcccc}
+.cinp{display:flex;gap:8px;padding:10px 14px;background:#111;border-top:1px solid #222;flex-shrink:0}
+.cinp input{flex:1;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:20px;padding:10px 14px;font-size:14px;color:#f2f2f2;outline:none}
+.bsend{width:40px;height:40px;border-radius:50%;background:#cc0000;border:none;color:#fff;font-size:16px;cursor:pointer}
+/* PERFIL */
+.phdr{background:linear-gradient(135deg,#1a0000,#2a0500);border-radius:14px;padding:20px;text-align:center;margin-bottom:16px}
+.pav{width:70px;height:70px;border-radius:50%;background:#cc0000;display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 10px;border:3px solid #cc0000;overflow:hidden;cursor:pointer}
+.pav img{width:100%;height:100%;object-fit:cover}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.sb{background:#1a1a1a;border:1px solid #2e2e2e;border-radius:12px;padding:14px;text-align:center}
+.sv{font-size:22px;font-weight:800;color:#cc0000}
+.sl{font-size:11px;color:#555;margin-top:2px}
+.mi{display:flex;align-items:center;gap:12px;padding:14px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:12px;margin-bottom:8px;cursor:pointer;font-size:14px}
+/* FOTOS/VIDEO */
+.fa{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.ft{position:relative;width:80px;height:80px;flex-shrink:0}
+.ft img{width:80px;height:80px;object-fit:cover;border-radius:10px;border:2px solid #2e2e2e}
+.fdel{position:absolute;top:-6px;right:-6px;width:22px;height:22px;background:#cc0000;border:none;border-radius:50%;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.fadd{width:80px;height:80px;border:2px dashed #2e2e2e;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:#555;font-size:11px;gap:4px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="ldg">
+  <div class="ld-logo">Kasa<span>Angola</span></div>
+  <div class="ld-dots"><div class="ld-dot"></div><div class="ld-dot"></div><div class="ld-dot"></div></div>
+  <div style="font-size:13px;color:#555">A carregar...</div>
+</div>
+
+<!-- AUTH -->
+<div id="auth">
+  <div class="abox">
+    <div style="text-align:center;margin-bottom:24px">
+      <div id="logoAuth" style="width:80px;height:80px;background:linear-gradient(135deg,#cc0000,#ff4444);border-radius:20px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:38px;overflow:hidden">&#127968;</div>
+      <div id="nomeAuth" style="font-size:30px;font-weight:800"><span style="color:#fff">Kasa</span><span style="color:#cc0000">Angola</span></div>
+      <div id="sloganAuth" style="font-size:12px;color:#555;margin-top:6px">&#127462;&#127476; Sem intermediario - Proprietario directo</div>
+    </div>
+    <div class="atabs">
+      <button class="atab on" id="tabIn" onclick="showIn()">Entrar</button>
+      <button class="atab" id="tabReg" onclick="showReg()">Cadastrar</button>
+    </div>
+    <div id="aerr" class="merr"></div>
+    <div id="pIn">
+      <input class="inp" id="lEmail" type="email" placeholder="E-mail"/>
+      <input class="inp" id="lSenha" type="password" placeholder="Senha"/>
+      <button class="btn-r" onclick="doLogin()">Entrar</button>
+      <div style="text-align:center;margin-top:12px">
+        <button onclick="showRec()" style="background:none;border:none;color:#7c3aed;font-size:13px;cursor:pointer;text-decoration:underline">Esqueci a senha</button>
+      </div>
+    </div>
+    <div id="pReg" style="display:none">
+      <input class="inp" id="rNome" placeholder="Nome completo"/>
+      <input class="inp" id="rTel" placeholder="Telefone (+244...)"/>
+      <input class="inp" id="rEmail" type="email" placeholder="E-mail"/>
+      <input class="inp" id="rSenha" type="password" placeholder="Senha (min. 4 caracteres)"/>
+      <button class="btn-r" onclick="doReg()">Criar conta</button>
+    </div>
+    <div id="pRec" style="display:none">
+      <div style="font-size:13px;color:#777;margin-bottom:12px;text-align:center;line-height:1.6">Insere o teu e-mail para recuperar a senha via WhatsApp.</div>
+      <input class="inp" id="recEmail" type="email" placeholder="O teu e-mail"/>
+      <button class="btn-r" onclick="doRec()" style="margin-bottom:8px">Recuperar senha</button>
+      <button class="btn-g" onclick="showIn()">&#8592; Voltar</button>
+    </div>
+  </div>
+</div>
+
+<!-- DOCS -->
+<div id="docs">
+  <div style="max-width:480px;margin:0 auto;padding-bottom:40px">
+    <div style="text-align:center;padding:24px 0 16px">
+      <div style="font-size:40px;margin-bottom:8px">&#128274;</div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:6px">Verificacao de Identidade</div>
+      <div style="font-size:13px;color:#777;line-height:1.6">Envia pelo menos <strong style="color:#fff">1 documento</strong> (frente e verso).</div>
+    </div>
+    <div style="background:#0a1a0a;border:1px solid #16a34a;border-radius:12px;padding:12px;margin-bottom:16px;font-size:12px;color:#aaffaa">&#128274; Os teus documentos sao guardados de forma segura.</div>
+    <div class="dcard" id="cardBI">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:22px">&#128100;</span>
+        <div style="flex:1"><div style="font-weight:700">Bilhete de Identidade</div><div style="font-size:12px;color:#777">Frente + Verso</div></div>
+        <div id="badgeBI" style="font-size:11px;background:#1a1a1a;color:#555;padding:3px 8px;border-radius:20px">0/2</div>
+      </div>
+      <div class="dtabs">
+        <button class="atab on" id="biTF" onclick="setBITab('f')">Frente</button>
+        <button class="atab" id="biTV" onclick="setBITab('v')">Verso</button>
+      </div>
+      <div id="biF">
+        <div class="darea" id="upBIF" onclick="document.getElementById('inpBIF').click()">
+          <input type="file" id="inpBIF" accept="image/*" style="display:none" onchange="loadDoc(event,'biF','upBIF','pvBIF','badgeBI','cardBI')"/>
+          <div style="font-size:26px;margin-bottom:4px">&#128247;</div>
+          <div style="font-size:12px;color:#555">Toca para carregar a frente</div>
+        </div>
+        <img id="pvBIF" class="dprev"/>
+      </div>
+      <div id="biV" style="display:none">
+        <div class="darea" id="upBIV" onclick="document.getElementById('inpBIV').click()">
+          <input type="file" id="inpBIV" accept="image/*" style="display:none" onchange="loadDoc(event,'biV','upBIV','pvBIV','badgeBI','cardBI')"/>
+          <div style="font-size:26px;margin-bottom:4px">&#128247;</div>
+          <div style="font-size:12px;color:#555">Toca para carregar o verso</div>
+        </div>
+        <img id="pvBIV" class="dprev"/>
+      </div>
+    </div>
+    <div class="dcard" id="cardCarta">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:22px">&#128663;</span>
+        <div style="flex:1"><div style="font-weight:700">Carta de Conducao</div><div style="font-size:12px;color:#777">Frente + Verso</div></div>
+        <div id="badgeCarta" style="font-size:11px;background:#1a1a1a;color:#555;padding:3px 8px;border-radius:20px">0/2</div>
+      </div>
+      <div class="dtabs">
+        <button class="atab on" id="cTF" onclick="setCartaTab('f')">Frente</button>
+        <button class="atab" id="cTV" onclick="setCartaTab('v')">Verso</button>
+      </div>
+      <div id="cartaF">
+        <div class="darea" id="upCF" onclick="document.getElementById('inpCF').click()">
+          <input type="file" id="inpCF" accept="image/*" style="display:none" onchange="loadDoc(event,'cartaF','upCF','pvCF','badgeCarta','cardCarta')"/>
+          <div style="font-size:26px;margin-bottom:4px">&#128247;</div>
+          <div style="font-size:12px;color:#555">Toca para carregar a frente</div>
+        </div>
+        <img id="pvCF" class="dprev"/>
+      </div>
+      <div id="cartaV" style="display:none">
+        <div class="darea" id="upCV" onclick="document.getElementById('inpCV').click()">
+          <input type="file" id="inpCV" accept="image/*" style="display:none" onchange="loadDoc(event,'cartaV','upCV','pvCV','badgeCarta','cardCarta')"/>
+          <div style="font-size:26px;margin-bottom:4px">&#128247;</div>
+          <div style="font-size:12px;color:#555">Toca para carregar o verso</div>
+        </div>
+        <img id="pvCV" class="dprev"/>
+      </div>
+    </div>
+    <div id="docsErr" style="color:#ff6666;font-size:13px;text-align:center;margin-bottom:10px;display:none;padding:10px;background:#1a0000;border-radius:8px"></div>
+    <button class="btn-r" onclick="confirmDocs()" style="margin-bottom:10px">Continuar &#8594;</button>
+    <button class="btn-g" onclick="skipDocs()">Pular por agora</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="topbar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div id="logoTopoImg" style="display:none;width:32px;height:32px;border-radius:8px;overflow:hidden"><img id="logoTopoEl" style="width:100%;height:100%;object-fit:cover"/></div>
+      <div class="logo" id="nomeTopo">Kasa<span>Angola</span></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="avbtn" style="background:#1a1a1a;border:1px solid #2e2e2e;color:#f2f2f2;font-size:20px;width:38px;height:38px" onclick="abrirPub()">+</button>
+      <button class="avbtn" id="avatarTopo" style="background:#cc0000;color:#fff" onclick="goTo('perfil')">U</button>
+    </div>
+  </header>
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <!-- INICIO -->
+    <div class="tela on" id="tela-inicio">
+      <input class="inp" id="pesq" placeholder="&#128269; Pesquisar..." oninput="renderList()"/>
+      <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px;scrollbar-width:none">
+        <button class="fbtn on" onclick="setF('todos',this)">Todos</button>
+        <button class="fbtn" onclick="setF('alugar',this)">Alugar</button>
+        <button class="fbtn" onclick="setF('vender',this)">Vender</button>
+      </div>
+      <div id="lista"></div>
+    </div>
+    <!-- CHAT -->
+    <div class="tela" id="tela-chat">
+      <div id="chatLista"></div>
+      <div id="chatWin" class="cwin">
+        <div class="dhead">
+          <button class="bback" onclick="fecharChat()">&#8592; Voltar</button>
+          <div id="chatCab" style="font-size:14px;font-weight:600;flex:1"></div>
+        </div>
+        <div class="msgs" id="msgsEl"></div>
+        <div class="cinp">
+          <input type="text" id="msgInp" placeholder="Escreve..." onkeydown="if(event.key==='Enter')enviarMsg()"/>
+          <button class="bsend" onclick="enviarMsg()">&#9658;</button>
+        </div>
+      </div>
+    </div>
+    <!-- PERFIL -->
+    <div class="tela" id="tela-perfil">
+      <div class="phdr">
+        <div class="pav" id="profAv" onclick="document.getElementById('inpFoto').click()">&#128100;</div>
+        <input type="file" accept="image/*" id="inpFoto" style="display:none" onchange="mudaFoto(event)"/>
+        <div style="font-size:17px;font-weight:700" id="pNome">-</div>
+        <div style="font-size:12px;color:#777;margin-top:2px" id="pTel"></div>
+        <div style="font-size:11px;color:#555" id="pEmail"></div>
+        <div id="pBadge" style="margin-top:8px"></div>
+      </div>
+      <div class="sg">
+        <div class="sb"><div class="sv" id="stAn">0</div><div class="sl">Anuncios</div></div>
+        <div class="sb"><div class="sv" id="stDesb">0</div><div class="sl">Desbloqueados</div></div>
+      </div>
+      <div class="mi" onclick="abrirPub()">+ <span style="flex:1">Publicar anuncio</span><span style="color:#333">&#8250;</span></div>
+      <div class="mi" onclick="meusAnuncios()">&#127968; <span style="flex:1">Os meus anuncios</span><span style="color:#333">&#8250;</span></div>
+      <div class="mi" onclick="editarPerfil()">&#9999; <span style="flex:1">Editar Perfil</span><span style="color:#333">&#8250;</span></div>
+      <div class="mi" onclick="irDocs()">&#128100; <span style="flex:1">Meus Documentos</span><span style="color:#333">&#8250;</span></div>
+      <div class="mi" onclick="doSair()">&#128682; <span style="flex:1">Sair da conta</span><span style="color:#333">&#8250;</span></div>
+      <div style="text-align:center;padding:20px 0;font-size:11px;color:#333">KasaAngola &#127462;&#127476; · Isaac Ndala Pedro · +244 935 633 508</div>
+    </div>
+    <!-- ADMIN -->
+    <div class="tela" id="tela-admin">
+      <div style="font-size:18px;font-weight:800;margin-bottom:14px">&#9881; Painel Admin</div>
+      <div class="sg" style="margin-bottom:10px">
+        <div class="sb"><div class="sv" id="adAn">0</div><div class="sl">Anuncios</div></div>
+        <div class="sb"><div class="sv" id="adUs">0</div><div class="sl">Utilizadores</div></div>
+      </div>
+      <div class="sg" style="margin-bottom:14px">
+        <div class="sb" style="border-color:#7c3aed"><div class="sv" id="adVend" style="color:#a78bfa">0</div><div class="sl">Vendidos</div></div>
+        <div class="sb" style="border-color:#2563eb"><div class="sv" id="adArr" style="color:#60a5fa">0</div><div class="sl">Arrendados</div></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+        <button id="abAn" onclick="abaAdmin('an')" style="flex:1;padding:9px;background:#cc0000;border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:700;cursor:pointer">&#127968; Anuncios</button>
+        <button id="abUs" onclick="abaAdmin('us')" style="flex:1;padding:9px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:10px;color:#777;font-size:12px;font-weight:700;cursor:pointer">&#128100; Utilizadores</button>
+        <button id="abVis" onclick="abaAdmin('vis')" style="flex:1;padding:9px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:10px;color:#777;font-size:12px;font-weight:700;cursor:pointer">&#127912; Visual</button>
+      </div>
+      <div id="painelPesqUs" style="display:none;margin-bottom:10px">
+        <input class="inp" id="pesqUs" placeholder="&#128269; Nome, email ou telefone..." oninput="renderUs()" style="margin-bottom:8px"/>
+        <select class="inp" id="filRegiao" onchange="renderUs()" style="margin-bottom:0"><option value="">Todas as regioes</option></select>
+      </div>
+      <div id="adminBody"></div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="ni on" id="ni-inicio" onclick="goTo('inicio')"><span style="font-size:20px">&#127968;</span>Inicio</div>
+    <div class="ni" id="ni-chat" onclick="goTo('chat')"><span style="font-size:20px">&#128172;</span>Chat</div>
+    <div class="ni" id="ni-perfil" onclick="goTo('perfil')"><span style="font-size:20px">&#128100;</span>Perfil</div>
+    <div class="ni" id="ni-admin" style="display:none" onclick="goTo('admin')"><span style="font-size:20px">&#9881;</span>Admin</div>
+  </nav>
+</div>
+
+<!-- DETALHE -->
+<div id="det">
+  <div class="dhead">
+    <button class="bback" onclick="fechaDet()">&#8592; Voltar</button>
+    <div id="detTit" style="font-size:14px;font-weight:600;flex:1;text-align:center"></div>
+    <span style="cursor:pointer;font-size:22px" id="btnFav" onclick="toggleFav()">&#9825;</span>
+  </div>
+  <div id="detImg" class="dimg"></div>
+  <div class="dbody">
+    <div class="dpreco" id="detPreco"></div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px" id="detNome"></div>
+    <div style="font-size:13px;color:#777;margin-bottom:14px" id="detLoc"></div>
+    <div class="dfeats" id="detFeats"></div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px">Descricao</div>
+    <div class="ddesc" id="detDesc"></div>
+    <div id="caixaCont" class="cbox clock"></div>
+    <div class="aviso"><strong style="color:#f97316">&#9888; Aviso Legal</strong><br/>Nunca pagues sem visitar o imovel pessoalmente.<br/>Burla: Art. 217 Cod. Penal Angola. Policia: <strong>113</strong></div>
+  </div>
+  <div class="dacoes">
+    <button class="bac" id="btnDesbl" style="background:#7c3aed;color:#fff" onclick="abrirPag()">&#128275; Desbloquear</button>
+    <button class="bac" style="background:#cc0000;color:#fff" onclick="inicChat()">&#128172; Chat</button>
+    <button class="bac" id="btnLigar" style="background:#1a1a1a;border:1px solid #2e2e2e;color:#f2f2f2" onclick="ligar()">&#128222; Ligar</button>
+  </div>
+</div>
+
+<!-- MODAL PAG -->
+<div class="mov" id="mPag">
+  <div class="mbox">
+    <div class="mh"></div>
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px">&#128275; Desbloquear Contacto</div>
+    <div style="background:linear-gradient(135deg,#0a0a20,#15103a);border:2px solid #7c3aed;border-radius:14px;padding:20px;text-align:center;margin-bottom:16px">
+      <div id="precoPag" style="font-size:30px;font-weight:800;color:#fff;margin-bottom:4px">3.000 Kz</div>
+      <div style="font-size:12px;color:#c4b5fd">Pagamento unico</div>
+    </div>
+    <div id="ppPag">
+      <div style="background:#0a1a0a;border:2px solid #16a34a;border-radius:12px;padding:16px;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:700;color:#16a34a;margin-bottom:10px">&#128179; Multicaixa Express</div>
+        <div class="mcnum" onclick="copiar('935633508','Multicaixa')">935 633 508</div>
+      </div>
+      <div class="iban"><div class="ibanlabel">BAI</div><div class="ibannum" onclick="copiar('004000000952086910123','BAI')">0040 0000 09520869101 23</div></div>
+      <div class="iban" style="margin-bottom:14px"><div class="ibanlabel">BFA</div><div class="ibannum" onclick="copiar('000600007947102230154','BFA')">0006 0000 79471022301 54</div></div>
+      <a id="linkWA" href="" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:#16a34a;border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:10px">&#128242; Enviei comprovativo (WhatsApp)</a>
+      <div style="display:flex;gap:10px">
+        <button class="btn-g" onclick="fechaPag()" style="flex:1;padding:13px">Cancelar</button>
+        <button onclick="showCod()" style="flex:1;padding:13px;background:#7c3aed;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Tenho codigo &#8594;</button>
+      </div>
+    </div>
+    <div id="ppCod" style="display:none">
+      <div style="background:#0a0a20;border:2px solid #7c3aed;border-radius:12px;padding:16px;margin-bottom:14px;text-align:center">
+        <div style="font-size:14px;font-weight:700;color:#a78bfa;margin-bottom:6px">Codigo de desbloqueio</div>
+        <input id="inpCod" type="number" placeholder="0000" style="width:100%;background:#0c0c0c;border:2px solid #7c3aed;border-radius:10px;padding:14px;font-size:32px;color:#fff;text-align:center;outline:none;font-family:monospace"/>
+        <div id="errCod" style="color:#ff6666;font-size:12px;margin-top:8px;display:none"></div>
+      </div>
+      <button onclick="verifCod()" style="width:100%;padding:14px;background:#7c3aed;border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px">&#128275; Desbloquear</button>
+      <button onclick="voltarPag()" style="width:100%;padding:11px;background:transparent;border:none;color:#555;font-size:13px;cursor:pointer">&#8592; Voltar</button>
+      <div id="infoCod"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PUBLICAR -->
+<div class="mov" id="mPub">
+  <div class="mbox">
+    <div class="mh"></div>
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px">+ Publicar Anuncio</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="tipA" class="fbtn on" onclick="setTipo('alugar')">Alugar</button>
+      <button id="tipV" class="fbtn" onclick="setTipo('vender')">Vender</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button id="mFoto" onclick="setMedia('foto')" style="flex:1;padding:9px;background:#cc0000;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">&#128247; Fotos</button>
+      <button id="mVideo" onclick="setMedia('video')" style="flex:1;padding:9px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:8px;color:#777;font-size:13px;font-weight:700;cursor:pointer">&#127909; Video</button>
+    </div>
+    <div id="pFotos">
+      <div style="font-size:11px;color:#555;margin-bottom:6px">Fotos (max 5)</div>
+      <div class="fa" id="areaFotos"><div class="fadd" onclick="document.getElementById('inpFotos').click()"><span style="font-size:22px">+</span><span>Foto</span></div></div>
+      <input type="file" accept="image/*" multiple id="inpFotos" style="display:none" onchange="loadFotos(event)"/>
+    </div>
+    <div id="pVideo" style="display:none">
+      <div style="font-size:11px;color:#555;margin-bottom:6px">Video (max 50MB)</div>
+      <div id="areaVid" onclick="document.getElementById('inpVideo').click()" style="border:2px dashed #2e2e2e;border-radius:10px;padding:24px;text-align:center;cursor:pointer;margin-bottom:8px">
+        <div style="font-size:32px;margin-bottom:6px">&#127909;</div>
+        <div style="font-size:12px;color:#555">Toca para carregar video</div>
+      </div>
+      <input type="file" accept="video/*" id="inpVideo" style="display:none" onchange="loadVideo(event)"/>
+      <video id="prevVid" style="display:none;width:100%;border-radius:10px;margin-bottom:6px" controls></video>
+      <button id="btnRmVid" style="display:none;width:100%;padding:8px;background:#2a0000;border:1px solid #cc0000;border-radius:8px;color:#ff6666;font-size:12px;cursor:pointer" onclick="rmVideo()">&#128465; Remover video</button>
+    </div>
+    <input class="inp" id="pubTit" placeholder="Titulo (ex: T3 em Talatona)"/>
+    <div style="position:relative;margin-bottom:12px">
+      <input class="inp" id="pubPreco" type="text" placeholder="Preco (ex: 30000 ou 30mil ou 4.5M)" style="margin:0" oninput="fmtPreco(this)"/>
+      <div id="precoFmt" style="font-size:12px;color:#16a34a;padding:3px 4px;display:none"></div>
+    </div>
+    <select class="inp" id="pubProv" onchange="loadMuns('pubProv','pubMun')"></select>
+    <select class="inp" id="pubMun" style="display:none"></select>
+    <div style="display:flex;gap:8px">
+      <select class="inp" id="pubQ" style="flex:1"><option value="1">1 quarto</option><option value="2">2 quartos</option><option value="3">3 quartos</option><option value="4">4 quartos</option><option value="5">5+</option></select>
+      <input class="inp" id="pubArea" type="number" placeholder="Area m2" style="flex:1"/>
+    </div>
+    <textarea class="inp" id="pubDesc" rows="3" style="resize:none;height:70px" placeholder="Descricao..."></textarea>
+    <input class="inp" id="pubTel" placeholder="O teu telefone (+244...)"/>
+    <div style="background:#1a0a00;border:1px solid #f97316;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#ffccaa">Ao publicar confirmas que es o proprietario.</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-g" onclick="fechaPub()" style="flex:1;padding:13px">Cancelar</button>
+      <button class="btn-r" onclick="publicar()" style="flex:1;padding:13px">Publicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MEUS ANUNCIOS -->
+<div class="mov" id="mMeus">
+  <div class="mbox">
+    <div class="mh"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:17px;font-weight:700">&#127968; Os meus anuncios</div>
+      <button onclick="fechaMeus()" style="background:none;border:none;color:#555;font-size:20px;cursor:pointer">&#10005;</button>
+    </div>
+    <div id="meusBody"></div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PERFIL -->
+<div class="mov" id="mEdit">
+  <div class="mbox">
+    <div class="mh"></div>
+    <div style="font-size:17px;font-weight:700;margin-bottom:6px">&#9999; Editar Perfil</div>
+    <div style="font-size:12px;color:#555;margin-bottom:16px">O nome nao pode ser alterado.</div>
+    <input class="inp" id="eTel" placeholder="Telefone (+244...)"/>
+    <input class="inp" id="eEmail" type="email" placeholder="Novo e-mail"/>
+    <input class="inp" id="eSenha" type="password" placeholder="Nova senha (deixa vazio para manter)"/>
+    <div id="editErr" class="merr"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-g" onclick="fechaEdit()" style="flex:1;padding:13px">Cancelar</button>
+      <button class="btn-r" onclick="salvarPerfil()" style="flex:1;padding:13px">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ADMIN ANUNCIO -->
+<div class="mov" id="mAdmAn">
+  <div class="mbox">
+    <div class="mh"></div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px" id="admAnTit">Accoes</div>
+    <button id="btnVend" style="width:100%;padding:13px;background:#7c3aed;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">&#128274; Marcar VENDIDO</button>
+    <button id="btnArr" style="width:100%;padding:13px;background:#2563eb;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">&#128274; Marcar ARRENDADO</button>
+    <button id="btnAp" style="width:100%;padding:13px;background:#cc0000;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">&#128465; Apagar anuncio</button>
+    <button id="btnDes" style="width:100%;padding:13px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:12px;color:#777;font-size:14px;cursor:pointer;margin-bottom:8px">&#8635; Desmarcar</button>
+    <button id="btnApTodos" style="width:100%;padding:13px;background:#7f1d1d;border:1px solid #cc0000;border-radius:12px;color:#ff6666;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">&#128683; Apagar TODOS deste proprietario</button>
+    <button class="btn-g" onclick="fechaAdmAn()">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL ADMIN UTILIZADOR -->
+<div class="mov" id="mAdmUs">
+  <div class="mbox">
+    <div class="mh"></div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:4px" id="admUsNome">Utilizador</div>
+    <div style="font-size:12px;color:#555;margin-bottom:16px" id="admUsEmail"></div>
+    <div id="admUsInfo" style="background:#111;border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;line-height:2"></div>
+    <button id="btnBloquear" style="width:100%;padding:13px;background:#7f1d1d;border:1px solid #cc0000;border-radius:12px;color:#ff6666;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">&#128683; Bloquear conta</button>
+    <button id="btnDesbloquear" style="width:100%;padding:13px;background:#0a1a0a;border:1px solid #16a34a;border-radius:12px;color:#16a34a;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;display:none">&#9989; Desbloquear conta</button>
+    <button id="btnApagarUs" style="width:100%;padding:13px;background:#1a1a1a;border:1px solid #cc0000;border-radius:12px;color:#cc0000;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px">&#128465; Apagar conta e anuncios</button>
+    <button class="btn-g" onclick="fechaAdmUs()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+// ══ FIREBASE ══
+var db=null,unsubAn=null;
+try{firebase.initializeApp({apiKey:"AIzaSyC-uy4oI214gnXg-wHFWouTrPuTt6t__FA",authDomain:"kasaangola.firebaseapp.com",projectId:"kasaangola",storageBucket:"kasaangola.firebasestorage.app",messagingSenderId:"513174944482",appId:"1:513174944482:web:a3d3ad9ff24cee6a3efcbb"});db=firebase.firestore();}catch(e){console.warn('FB:',e.message);}
+function FB(){return !!db;}
+
+// ══ MUNICIPIOS ══
+var MUNS={Luanda:['Luanda','Belas','Cacuaco','Cazenga','Quilamba Quiaxi','Quissama','Viana'],'Icolo e Bengo':['Catete','Calumbo','Cassoneca','Mangando'],Benguela:['Benguela','Balombo','Baia Farta','Bocoio','Caimbambo','Catumbela','Chongoroi','Cubal','Ganda','Lobito'],Huambo:['Huambo','Bailundo','Catchiungo','Caala','Ecunha','Londuimbali','Longonjo','Mungo'],Huila:['Lubango','Caconda','Cacula','Caluquembe','Chiange','Chipindo','Chibia','Cuvango','Humpata','Jamba','Matala','Quilengues'],Cabinda:['Cabinda','Belize','Buco-Zau','Cacongo'],Malanje:['Malanje','Cacuso','Calandula','Cambundi-Catembo','Cangandala'],'Cuanza Norte':['Ndalatando','Ambaca','Banga','Bolongongo','Camambe'],'Cuanza Sul':['Sumbe','Amboim','Cassongue','Cela','Conda','Ebo','Porto Amboim'],Cuando:['Cuito Cuanavale','Longa','Mavinga'],'Cuando Cubango':['Menongue','Calai','Cuangar','Cuchi','Dirico'],Moxico:['Luena','Alto Zambeze','Bundas','Camanongue','Leua','Luchazes'],'Moxico Leste':['Cazombo','Alto Zambeze'],Bie:['Cuito','Andulo','Camacupa','Catabola','Chinguar'],Cunene:['Ondjiva','Cahama','Cuanhama','Curoca','Namacunde'],Namibe:['Mocamedes','Bibala','Camucuio','Tombua','Virei'],Uige:['Uige','Alto Cauale','Ambuila','Bembe','Damba','Negage','Zombo'],Zaire:['Mbanza Kongo','Cuimba','Noqui','Nzeto','Soyo'],Bengo:['Caxito','Ambriz','Bula Atumba','Dande','Dembos'],'Lunda Norte':['Dundo','Cambulo','Chitato','Cuango','Lucapa'],'Lunda Sul':['Saurimo','Cacolo','Dala','Muconda']};
+
+// ══ STORAGE ══
+function LS(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify(v));}catch(e){return null;}}
+function LSdel(k){try{localStorage.removeItem(k);}catch(e){}}
+
+// ══ HASH ══
+function H(s){var h=5381;for(var i=0;i<s.length;i++){h=((h<<5)+h)+s.charCodeAt(i);h=h&h;}return 'kh'+Math.abs(h).toString(16);}
+function okS(d,g){return g===d||g===H(d);}
+
+// ══ VARS ══
+var users=LS('ka_u')||[], ans=LS('ka_a')||[], apag=LS('ka_del')||{};
+var user=null,imovel=null,desbl={},tipo='alugar',filtro='todos';
+var chatIdx=0,chats=[],fotos=[],videoBlob=null,docsT={biF:null,biV:null,cartaF:null,cartaV:null},cods={};
+var ADMIN='isaacmarcos9000@gmail.com', admAnId=null, admUsEmail=null;
+var TIMEOUT=10*60*1000, timer=null;
+function isAdmin(){return user&&user.email===ADMIN;}
+
+// ══ LOADING ══
+function hideLoad(){var e=document.getElementById('ldg');if(e&&e.style.display!=='none'){e.style.transition='opacity .4s';e.style.opacity='0';setTimeout(function(){e.style.display='none';},400);}}
+setTimeout(function(){hideLoad();},1500);
+
+// ══ TIMER ══
+function resetTimer(){if(timer)clearTimeout(timer);if(!user)return;timer=setTimeout(function(){alert('Sessao expirada.');doSair();},TIMEOUT);}
+document.addEventListener('click',function(){if(user)resetTimer();});
+document.addEventListener('touchstart',function(){if(user)resetTimer();});
+
+// ══ COPIAR ══
+function copiar(txt,n){try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(function(){alert(n+' copiado!\n'+txt);});}else{var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');alert(n+' copiado!\n'+txt);}catch(e){alert(n+':\n'+txt);}document.body.removeChild(ta);}}catch(e){alert(n+':\n'+txt);}}
+
+// ══ AUTH ══
+function aerr(m){var e=document.getElementById('aerr');e.textContent=m;e.style.display='block';}
+function showIn(){document.getElementById('tabIn').className='atab on';document.getElementById('tabReg').className='atab';document.getElementById('pIn').style.display='block';document.getElementById('pReg').style.display='none';document.getElementById('pRec').style.display='none';document.getElementById('aerr').style.display='none';}
+function showReg(){document.getElementById('tabIn').className='atab';document.getElementById('tabReg').className='atab on';document.getElementById('pIn').style.display='none';document.getElementById('pReg').style.display='block';document.getElementById('pRec').style.display='none';document.getElementById('aerr').style.display='none';}
+function showRec(){document.getElementById('tabIn').className='atab';document.getElementById('tabReg').className='atab';document.getElementById('pIn').style.display='none';document.getElementById('pReg').style.display='none';document.getElementById('pRec').style.display='block';document.getElementById('aerr').style.display='none';}
+
+function doLogin(){
+  var em=document.getElementById('lEmail').value.trim().toLowerCase();
+  var pw=document.getElementById('lSenha').value.trim();
+  if(!em||!pw){aerr('Preenche o email e a senha.');return;}
+  document.getElementById('aerr').style.display='none';
+  // Local
+  for(var i=0;i<users.length;i++){
+    if(users[i].email===em&&okS(pw,users[i].senha)){
+      if(users[i].bloqueado){aerr('A tua conta foi suspensa. Contacta o administrador.');return;}
+      entrar(users[i]);return;
+    }
+  }
+  // Firebase
+  if(FB()){
+    aerr('A verificar...');
+    db.collection('users').doc(em).get().then(function(doc){
+      document.getElementById('aerr').style.display='none';
+      if(!doc.exists){aerr('Email ou senha incorretos!');return;}
+      var ud=doc.data();
+      if(!okS(pw,ud.senha)){aerr('Email ou senha incorretos!');return;}
+      if(ud.bloqueado){aerr('A tua conta foi suspensa. Contacta o administrador.');return;}
+      var ul=Object.assign({},ud,{photo:null,docs:{}});
+      var idx=-1;for(var j=0;j<users.length;j++){if(users[j].email===em){idx=j;break;}}
+      if(idx>=0)users[idx]=ul; else users.push(ul);
+      LS('ka_u',users);entrar(ul);
+    }).catch(function(){aerr('Erro de ligacao. Verifica a internet.');});
+  } else {aerr('Email ou senha incorretos!');}
+}
+
+function doReg(){
+  var nome=document.getElementById('rNome').value.trim();
+  var tel=document.getElementById('rTel').value.trim();
+  var em=document.getElementById('rEmail').value.trim().toLowerCase();
+  var pw=document.getElementById('rSenha').value.trim();
+  if(!nome||!em||!pw){aerr('Preenche todos os campos.');return;}
+  if(pw.length<4){aerr('Senha muito curta. Minimo 4 caracteres.');return;}
+  document.getElementById('aerr').style.display='none';
+  function _criar(){
+    var novo={email:em,senha:H(pw),nome:nome,phone:tel||'+244 900 000 000',photo:null,docs:{},verificado:false};
+    users=users.filter(function(u){return u.email!==em;});users.push(novo);LS('ka_u',users);
+    if(FB())db.collection('users').doc(em).set({email:em,senha:H(pw),nome:nome,phone:tel||'+244 900 000 000',verificado:false,criadoEm:Date.now()}).catch(function(){});
+    irDocs(novo);
+  }
+  if(FB()){
+    aerr('A verificar...');
+    db.collection('users').doc(em).get().then(function(doc){
+      document.getElementById('aerr').style.display='none';
+      if(doc.exists){aerr('Email ja registado. Vai a "Entrar".');return;}
+      _criar();
+    }).catch(function(){
+      for(var j=0;j<users.length;j++){if(users[j].email===em){aerr('Email ja registado.');return;}}
+      _criar();
+    });
+  } else {
+    for(var j=0;j<users.length;j++){if(users[j].email===em){aerr('Email ja registado.');return;}}
+    _criar();
+  }
+}
+
+function doRec(){
+  var em=document.getElementById('recEmail').value.trim().toLowerCase();
+  if(!em){aerr('Insere o teu e-mail.');return;}
+  document.getElementById('aerr').style.display='none';
+  function _enviar(tel,nome){
+    var cod=String(Math.floor(100000+Math.random()*900000));
+    if(FB())db.collection('recuperacoes').doc(em).set({email:em,codigo:cod,criadoEm:Date.now()}).catch(function(){});
+    var t=(tel||'').replace(/[^0-9]/g,'');
+    if(!t||t.length<9){alert('Sem numero registado. Contacta o administrador: +244 935 633 508');return;}
+    window.open('https://wa.me/'+t+'?text='+encodeURIComponent('KasaAngola - Codigo de recuperacao de senha: *'+cod+'*'),'_blank');
+    document.getElementById('pRec').innerHTML='<div style="font-size:13px;color:#777;margin-bottom:12px;text-align:center;line-height:1.6">Codigo enviado para o teu WhatsApp!<br>Insere-o abaixo para redefinir a senha.</div>'
+      +'<input class="inp" id="recCod" type="number" placeholder="Codigo de 6 digitos" style="text-align:center;font-size:20px;letter-spacing:6px"/>'
+      +'<input class="inp" id="recNova" type="password" placeholder="Nova senha (min. 4 caracteres)"/>'
+      +'<button class="btn-r" id="btnConfRec" style="margin-bottom:8px">Confirmar nova senha</button>'
+      +'<button class="btn-g" onclick="showIn()">&#8592; Voltar</button>';
+    document.getElementById('btnConfRec').onclick=function(){
+      var c=document.getElementById('recCod').value.trim();
+      var ns=document.getElementById('recNova').value.trim();
+      if(c.length!==6){aerr('O codigo tem 6 digitos.');return;}
+      if(ns.length<4){aerr('Senha muito curta.');return;}
+      function _redef(){
+        var nh=H(ns);
+        for(var i=0;i<users.length;i++){if(users[i].email===em){users[i].senha=nh;break;}}
+        LS('ka_u',users);
+        if(FB()){db.collection('users').doc(em).update({senha:nh}).catch(function(){});db.collection('recuperacoes').doc(em).delete().catch(function(){});}
+        showIn();alert('Senha redefinida! Podes fazer login.');
+      }
+      if(c===cod){_redef();return;}
+      if(FB()){db.collection('recuperacoes').doc(em).get().then(function(doc){if(doc.exists&&doc.data().codigo===c)_redef();else aerr('Codigo incorrecto.');}).catch(function(){aerr('Erro ao verificar.');});}
+      else aerr('Codigo incorrecto.');
+    };
+  }
+  if(FB()){
+    aerr('A verificar...');
+    db.collection('users').doc(em).get().then(function(doc){
+      document.getElementById('aerr').style.display='none';
+      if(doc.exists)_enviar(doc.data().phone,doc.data().nome);
+      else{var ul=null;for(var i=0;i<users.length;i++){if(users[i].email===em){ul=users[i];break;}}if(ul)_enviar(ul.phone,ul.nome);else aerr('Email nao encontrado.');}
+    }).catch(function(){var ul=null;for(var i=0;i<users.length;i++){if(users[i].email===em){ul=users[i];break;}}if(ul)_enviar(ul.phone,ul.nome);else aerr('Email nao encontrado.');});
+  } else {var ul=null;for(var i=0;i<users.length;i++){if(users[i].email===em){ul=users[i];break;}}if(ul)_enviar(ul.phone,ul.nome);else aerr('Email nao encontrado.');}
+}
+
+function irDocs(u){
+  if(u)user=u;
+  document.getElementById('auth').classList.remove('vis');
+  document.getElementById('docs').style.display='block';
+  document.getElementById('docsErr').style.display='none';
+  docsT={biF:null,biV:null,cartaF:null,cartaV:null};
+}
+
+function entrar(u){
+  user=u;LS('ka_s',{email:u.email});
+  var dp=LS('ka_db_'+u.email)||{};for(var dk in dp){desbl[dk]=dp[dk];}
+  document.getElementById('auth').classList.remove('vis');
+  document.getElementById('docs').style.display='none';
+  document.getElementById('app').style.display='flex';
+  if(u.photo){
+    document.getElementById('avatarTopo').innerHTML='<img src="'+u.photo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>';
+    document.getElementById('profAv').innerHTML='<img src="'+u.photo+'"/>';
+  } else {
+    document.getElementById('avatarTopo').textContent=u.nome[0].toUpperCase();
+  }
+  // Carregar foto actualizada do Firebase (pode ter mudado noutro dispositivo)
+  if(FB()&&u.email){
+    db.collection('users').doc(u.email).get().then(function(doc){
+      if(doc.exists&&doc.data().photo){
+        var p=doc.data().photo;
+        if(p!==u.photo){
+          u.photo=p;user.photo=p;
+          for(var _i=0;_i<users.length;_i++){if(users[_i].email===u.email){users[_i].photo=p;break;}}
+          LS('ka_u',users);
+          document.getElementById('avatarTopo').innerHTML='<img src="'+p+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>';
+          document.getElementById('profAv').innerHTML='<img src="'+p+'"/>';
+        }
+      }
+    }).catch(function(){});
+  }
+  document.getElementById('pNome').textContent=u.nome;
+  document.getElementById('pTel').textContent=u.phone||'';
+  document.getElementById('pEmail').textContent=u.email;
+  document.getElementById('pBadge').innerHTML=temDocs(u)
+    ?'<span style="display:inline-block;background:#16a34a;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">&#10003; Verificado</span>'
+    :'<span style="display:inline-block;background:#555;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">Nao verificado</span>';
+  document.getElementById('stDesb').textContent=LS('ka_ndesb_'+u.email)||0;
+  var na=document.getElementById('ni-admin');if(na)na.style.display=isAdmin()?'flex':'none';
+  resetTimer();fillProvs('pubProv');subAns();renderChats();
+  // Restaurar aba activa
+  hideLoad();
+  var aba=localStorage.getItem('ka_aba')||'inicio';
+  history.replaceState({aba:aba},'','#'+aba);
+  _goTo(aba);
+  // Config visual
+  carregarConfig();
+}
+
+function doSair(){
+  desbl={};if(unsubAn){unsubAn();unsubAn=null;}
+  user=null;LSdel('ka_s');if(timer)clearTimeout(timer);
+  try{localStorage.removeItem('ka_aba');}catch(e){}
+  history.replaceState(null,'',window.location.pathname);
+  document.getElementById('auth').classList.add('vis');
+  document.getElementById('app').style.display='none';
+  document.getElementById('lEmail').value='';
+  document.getElementById('lSenha').value='';
+  document.getElementById('aerr').style.display='none';
+  showIn();
+}
+
+function temDocs(u){var d=u.docs||{};return !!(d.biF&&d.biV||d.cartaF&&d.cartaV);}
+
+// ══ DOCS ══
+function setBITab(l){document.getElementById('biTF').className=l==='f'?'atab on':'atab';document.getElementById('biTV').className=l==='v'?'atab on':'atab';document.getElementById('biF').style.display=l==='f'?'block':'none';document.getElementById('biV').style.display=l==='v'?'block':'none';}
+function setCartaTab(l){document.getElementById('cTF').className=l==='f'?'atab on':'atab';document.getElementById('cTV').className=l==='v'?'atab on':'atab';document.getElementById('cartaF').style.display=l==='f'?'block':'none';document.getElementById('cartaV').style.display=l==='v'?'block':'none';}
+function loadDoc(e,ch,upId,pvId,badgeId,cardId){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    docsT[ch]=ev.target.result;
+    var pv=document.getElementById(pvId);pv.src=ev.target.result;pv.style.display='block';
+    document.getElementById(upId).classList.add('tem');
+    var delId='del_'+pvId;
+    if(!document.getElementById(delId)){
+      var btn=document.createElement('button');btn.id=delId;btn.textContent='X Apagar';
+      btn.style.cssText='width:100%;margin-top:6px;padding:8px;background:#2a0000;border:1px solid #cc0000;border-radius:8px;color:#ff6666;font-size:13px;cursor:pointer';
+      btn.onclick=function(){docsT[ch]=null;pv.src='';pv.style.display='none';document.getElementById(upId).classList.remove('tem');btn.parentNode.removeChild(btn);updBadge(badgeId,cardId);var inps={biF:'inpBIF',biV:'inpBIV',cartaF:'inpCF',cartaV:'inpCV'};var el=document.getElementById(inps[ch]);if(el)el.value='';};
+      pv.parentNode.insertBefore(btn,pv.nextSibling);
+    }
+    updBadge(badgeId,cardId);
+  };r.readAsDataURL(f);
+}
+function updBadge(badgeId,cardId){
+  var bi=(docsT.biF?1:0)+(docsT.biV?1:0),ca=(docsT.cartaF?1:0)+(docsT.cartaV?1:0);
+  var c=badgeId==='badgeBI'?bi:ca;var b=document.getElementById(badgeId);
+  b.textContent=c+'/2';b.style.background=c>=2?'#16a34a':'#1a1a1a';b.style.color=c>=2?'#fff':'#555';
+  if(c>=2)document.getElementById(cardId).classList.add('ok'); else document.getElementById(cardId).classList.remove('ok');
+}
+function confirmDocs(){
+  var tBI=docsT.biF&&docsT.biV,tC=docsT.cartaF&&docsT.cartaV;
+  if(!tBI&&!tC){var e=document.getElementById('docsErr');e.textContent='Envia frente E verso de pelo menos 1 documento.';e.style.display='block';setTimeout(function(){e.style.display='none';},3000);return;}
+  if(!user.docs)user.docs={};
+  if(docsT.biF)user.docs.biF=docsT.biF;if(docsT.biV)user.docs.biV=docsT.biV;
+  if(docsT.cartaF)user.docs.cartaF=docsT.cartaF;if(docsT.cartaV)user.docs.cartaV=docsT.cartaV;
+  for(var i=0;i<users.length;i++){if(users[i].email===user.email){users[i]=user;break;}}LS('ka_u',users);
+  if(FB()){db.collection('users_docs').doc(user.email).set({biF:docsT.biF||null,biV:docsT.biV||null,cartaF:docsT.cartaF||null,cartaV:docsT.cartaV||null}).catch(function(){});db.collection('users').doc(user.email).update({verificado:true}).catch(function(){});}
+  entrar(user);
+}
+function skipDocs(){entrar(user);}
+function irDocs(){
+  document.getElementById('docs').style.display='block';
+  if(user&&user.docs){var d=user.docs;
+    if(d.biF){document.getElementById('pvBIF').src=d.biF;document.getElementById('pvBIF').style.display='block';document.getElementById('upBIF').classList.add('tem');}
+    if(d.biV){document.getElementById('pvBIV').src=d.biV;document.getElementById('pvBIV').style.display='block';document.getElementById('upBIV').classList.add('tem');}
+    if(d.cartaF){document.getElementById('pvCF').src=d.cartaF;document.getElementById('pvCF').style.display='block';document.getElementById('upCF').classList.add('tem');}
+    if(d.cartaV){document.getElementById('pvCV').src=d.cartaV;document.getElementById('pvCV').style.display='block';document.getElementById('upCV').classList.add('tem');}
+  }
+}
+
+// ══ NAVEGACAO ══
+function _goTo(t){
+  document.querySelectorAll('.tela').forEach(function(e){e.classList.remove('on');});
+  document.querySelectorAll('.ni').forEach(function(e){e.classList.remove('on');});
+  var tela=document.getElementById('tela-'+t);if(tela)tela.classList.add('on');
+  var nav=document.getElementById('ni-'+t);if(nav)nav.classList.add('on');
+  if(t==='chat')renderChats();
+  if(t==='admin')renderAdmin();
+  if(t==='perfil'){document.getElementById('stAn').textContent=ans.filter(function(a){return user&&a.autorEmail===user.email;}).length;}
+}
+function goTo(t){
+  _goTo(t);
+  try{localStorage.setItem('ka_aba',t);}catch(e){}
+  history.pushState({aba:t},'','#'+t);
+}
+window.addEventListener('popstate',function(e){
+  if(!user)return;
+  if(e.state&&e.state.aba){_goTo(e.state.aba);}
+  else{if(!confirm('Tem certeza que deseja sair da KasaAngola?')){var a=localStorage.getItem('ka_aba')||'inicio';history.pushState({aba:a},'','#'+a);}}
+});
+window.addEventListener('beforeunload',function(e){if(!user)return;e.preventDefault();e.returnValue='Tem certeza que deseja sair?';return e.returnValue;});
+
+// ══ PROVINCAS ══
+function fillProvs(id){var s=document.getElementById(id);if(!s)return;var o='<option value="">Selecciona a provincia</option>';Object.keys(MUNS).sort().forEach(function(p){o+='<option value="'+p+'">'+p+'</option>';});s.innerHTML=o;}
+function loadMuns(pId,mId){var p=document.getElementById(pId).value;var ms=document.getElementById(mId);if(!p){ms.style.display='none';return;}var o='<option value="">Selecciona o municipio</option>';(MUNS[p]||[]).forEach(function(m){o+='<option value="'+m+'">'+m+'</option>';});ms.innerHTML=o;ms.style.display='block';}
+
+// ══ PRECO ══
+function parseP(v){v=v.replace(/\s/g,'').replace(/\./g,'').replace(/,/g,'.');if(/mil/i.test(v)){var n=parseFloat(v.replace(/mil.*/i,'').replace(/[^0-9.]/g,''));return isNaN(n)?0:Math.round(n*1000);}if(/[mM]$/.test(v)){var n2=parseFloat(v.replace(/[mM]$/,''));return isNaN(n2)?0:Math.round(n2*1000000);}return parseInt(v.replace(/[^0-9]/g,''))||0;}
+function fmtPreco(inp){var n=parseP(inp.value);var e=document.getElementById('precoFmt');if(n>0){e.textContent='= '+(n>=1000000?(n/1000000).toFixed(1).replace('.0','')+'M Kz':n.toLocaleString()+' Kz');e.style.display='block';}else e.style.display='none';}
+function fmtP(p,t){if(p>=1000000)return(p/1000000).toFixed(1).replace('.0','')+'M Kz';return p.toLocaleString()+' Kz'+(t==='alugar'?'/mes':'');}
+
+// ══ ANUNCIOS ══
+function subAns(){
+  if(FB()){
+    if(unsubAn)unsubAn();
+    var loc=LS('ka_a')||[];if(loc.length){ans=loc;renderList();}
+    unsubAn=db.collection('anuncios').onSnapshot(function(snap){
+      var fb=[];snap.forEach(function(d){fb.push(d.data());});
+      fb.sort(function(a,b){return(b.criadoEm||0)-(a.criadoEm||0);});
+      ans=fb;LS('ka_a',ans);renderList();
+      if(imovel){var a=null;for(var i=0;i<ans.length;i++){if(ans[i].id===imovel.id){a=ans[i];break;}}if(a){imovel=a;abrirDet(a.id);}else fechaDet();}
+    },function(){ans=LS('ka_a')||[];renderList();});
+  } else {ans=LS('ka_a')||[];renderList();}
+}
+
+function renderList(){
+  var l=ans.slice();var q=(document.getElementById('pesq')||{value:''}).value.toLowerCase();
+  l=l.filter(function(a){
+    if(filtro!=='todos'&&a.tipo!==filtro)return false;
+    if(q&&(a.titulo||'').toLowerCase().indexOf(q)<0&&(a.zona||'').toLowerCase().indexOf(q)<0&&(a.municipio||'').toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+  var el=document.getElementById('lista');
+  if(!l.length){el.innerHTML='<div style="text-align:center;padding:60px 20px;color:#444"><div style="font-size:48px;margin-bottom:14px">&#127968;</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">Nenhum anuncio ainda</div><button onclick="abrirPub()" style="background:#cc0000;color:#fff;border:none;border-radius:12px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px">+ Publicar agora</button></div>';hideLoad();return;}
+  var h='';
+  for(var i=0;i<l.length;i++){
+    var a=l[i];var pf=a.fotos&&a.fotos.length?a.fotos[0]:a.foto;
+    var media=pf?'<img src="'+pf+'" style="width:100%;height:100%;object-fit:cover"/>':a.videoUrl?'<video src="'+a.videoUrl+'" style="width:100%;height:100%;object-fit:cover" muted></video>':'&#127968;';
+    var vC=a.vendido==='vendido'?'#7c3aed':'#2563eb',vT=a.vendido==='vendido'?'VENDIDO':'ARRENDADO';
+    var vB=a.vendido?'<div style="position:absolute;inset:0;background:rgba(0,0,0,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="background:'+vC+';color:#fff;font-size:16px;font-weight:800;padding:8px 20px;border-radius:20px">'+vT+'</span><span style="color:#ddd;font-size:11px">Ja nao esta disponivel</span></div>':'';
+    h+='<div class="card" onclick="abrirDet(\''+a.id+'\')">'
+      +'<div class="cimg">'+media+'<div class="tag tag-'+(a.tipo==='alugar'?'a':'v')+'">'+(a.tipo==='alugar'?'Alugar':'Vender')+'</div>'
+      +(a.verificado?'<div style="position:absolute;bottom:10px;right:10px;background:#16a34a;color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px">&#10003; Verificado</div>':'')
+      +vB+'</div>'
+      +'<div class="cbody"><div style="font-size:19px;font-weight:800;color:#cc0000;margin-bottom:4px">'+fmtP(a.preco,a.tipo)+'</div>'
+      +'<div style="font-size:14px;font-weight:600;margin-bottom:3px">'+a.titulo+'</div>'
+      +'<div style="font-size:12px;color:#777;margin-bottom:4px">&#128205; '+a.zona+(a.municipio?' · '+a.municipio:'')+'</div>'
+      +'<div style="font-size:11px;color:#555;margin-bottom:6px">&#128100; '+a.prop+'</div>'
+      +'<div style="display:flex;gap:10px;font-size:12px;color:#555"><span>&#128716; '+a.quartos+'</span><span>&#128207; '+a.area+'m2</span></div>'
+      +'</div></div>';
+  }
+  el.innerHTML=h;hideLoad();
+}
+function setF(t,el){filtro=t;document.querySelectorAll('.fbtn').forEach(function(b){b.className='fbtn';});el.className='fbtn on';renderList();}
+
+// ══ DETALHE ══
+function abrirDet(id){
+  var a=null;for(var i=0;i<ans.length;i++){if(ans[i].id===id){a=ans[i];break;}}
+  if(!a)return;imovel=a;
+  var d=!!desbl[id],isV=a.tipo==='vender';
+  document.getElementById('detTit').textContent=a.titulo;
+  var fs=a.fotos&&a.fotos.length?a.fotos:(a.foto?[a.foto]:[]);
+  var di=document.getElementById('detImg');
+  if(fs.length>0){
+    var g='<div style="display:flex;overflow-x:auto;height:200px;scroll-snap-type:x mandatory;scrollbar-width:none">';
+    for(var gi=0;gi<fs.length;gi++)g+='<img src="'+fs[gi]+'" style="height:200px;min-width:100%;object-fit:cover;flex-shrink:0;scroll-snap-align:start"/>';
+    g+='</div>';if(fs.length>1)g+='<div style="text-align:center;font-size:11px;color:#777;padding:4px;background:#111">&#8592; Desliza ('+fs.length+') &#8594;</div>';
+    di.innerHTML=g;di.style.height='auto';
+  } else if(a.videoUrl){
+    di.innerHTML='<video src="'+a.videoUrl+'" controls style="width:100%;height:200px;object-fit:cover"></video>';di.style.height='auto';
+  } else {di.innerHTML='<span style="font-size:80px">&#127968;</span>';di.style.height='200px';}
+  document.getElementById('detPreco').textContent=fmtP(a.preco,a.tipo);
+  document.getElementById('detNome').textContent=a.titulo;
+  document.getElementById('detLoc').textContent='&#128205; '+a.zona+(a.municipio?' · '+a.municipio:'');
+  document.getElementById('detDesc').textContent=a.desc||'Sem descricao.';
+  var fH='<div class="fbox">&#128716; '+a.quartos+' quartos</div><div class="fbox">&#128207; '+a.area+'m2</div><div class="fbox">'+(isV?'Venda':'Arrendamento')+'</div><div class="fbox">&#128100; '+a.prop+'</div>';
+  if(a.vendido){var vc=a.vendido==='vendido'?'#7c3aed':'#2563eb';fH+='<div style="width:100%;padding:12px;background:'+vc+'22;border:2px solid '+vc+';border-radius:12px;font-size:14px;font-weight:700;color:#fff;text-align:center">'+(a.vendido==='vendido'?'Este imovel foi VENDIDO':'Este imovel esta ARRENDADO')+'<br><span style="font-size:11px;font-weight:400;color:#aaa">Ja nao esta disponivel</span></div>';}
+  document.getElementById('detFeats').innerHTML=fH;
+  var cx=document.getElementById('caixaCont');var pT=isV?'15.000 Kz':'3.000 Kz';
+  var bD=document.getElementById('btnDesbl'),bL=document.getElementById('btnLigar');
+  if(d){cx.className='cbox copen';cx.innerHTML='<div style="font-size:14px;font-weight:700;color:#16a34a;margin-bottom:10px">&#9989; Contacto Desbloqueado</div><div style="font-size:16px;margin-bottom:6px;font-weight:700">&#128222; '+a.tel+'</div><div style="font-size:13px;color:#777">&#128205; '+a.morada+'</div>';bD.style.display='none';bL.style.background='#16a34a';bL.style.color='#fff';bL.style.border='none';}
+  else{cx.className='cbox clock';cx.innerHTML='<div style="font-size:14px;font-weight:700;color:#a78bfa;margin-bottom:8px">&#128274; Contacto Protegido</div><div style="font-size:13px;color:#c4b5fd;margin-bottom:12px;line-height:1.6">Paga a taxa de acesso para ver o numero e morada.</div><div style="font-size:24px;font-weight:800;color:#fff">'+pT+'</div>';bD.style.display='block';bD.textContent='&#128275; Desbloquear por '+pT;bL.style.background='#1a1a1a';bL.style.color='#f2f2f2';bL.style.border='1px solid #2e2e2e';}
+  var favs=LS('ka_favs')||{};document.getElementById('btnFav').innerHTML=favs[id]?'&#10084;':'&#9825;';
+  document.getElementById('det').style.display='block';
+}
+function fechaDet(){document.getElementById('det').style.display='none';imovel=null;}
+function toggleFav(){if(!imovel)return;var f=LS('ka_favs')||{};f[imovel.id]=!f[imovel.id];LS('ka_favs',f);document.getElementById('btnFav').innerHTML=f[imovel.id]?'&#10084;':'&#9825;';}
+function ligar(){if(!imovel)return;if(desbl[imovel.id])alert('A ligar: '+imovel.tel);else abrirPag();}
+
+// ══ PAGAMENTO ══
+function abrirPag(){
+  if(!imovel)return;var isV=imovel.tipo==='vender';var p=isV?'15.000 Kz':'3.000 Kz';
+  document.getElementById('precoPag').textContent=p;
+  document.getElementById('linkWA').href='https://wa.me/244935633508?text='+encodeURIComponent('KasaAngola - Paguei para desbloquear: '+imovel.titulo+'. Valor: '+p);
+  document.getElementById('ppPag').style.display='block';document.getElementById('ppCod').style.display='none';
+  document.getElementById('mPag').classList.add('on');
+}
+function fechaPag(){document.getElementById('mPag').classList.remove('on');}
+function voltarPag(){document.getElementById('ppPag').style.display='block';document.getElementById('ppCod').style.display='none';}
+function showCod(){
+  if(!imovel)return;var cod=String(Math.floor(1000+Math.random()*9000));cods[imovel.id]=cod;
+  try{var t=JSON.parse(localStorage.getItem('ka_cods')||'{}');t[imovel.id]=cod;localStorage.setItem('ka_cods',JSON.stringify(t));}catch(e){}
+  var msg='KasaAngola - Paguei para desbloquear: '+imovel.titulo+'. Valor: '+document.getElementById('precoPag').textContent+'. Aguardo o codigo.';
+  window.open('https://wa.me/244935633508?text='+encodeURIComponent(msg),'_blank');
+  document.getElementById('ppPag').style.display='none';document.getElementById('ppCod').style.display='block';
+  document.getElementById('inpCod').value='';document.getElementById('errCod').style.display='none';
+  var _cod=cod,_tit=imovel.titulo;
+  document.getElementById('infoCod').innerHTML='<div style="background:#1a1400;border:1px solid #d97706;border-radius:10px;padding:12px;margin-top:10px;text-align:center"><button id="btnIsaac" style="background:#d97706;border:none;border-radius:8px;padding:10px 16px;color:#000;font-size:13px;font-weight:700;cursor:pointer;width:100%">&#128272; Enviar codigo ao administrador</button></div>';
+  document.getElementById('btnIsaac').onclick=function(){window.open('https://wa.me/244935633508?text='+encodeURIComponent('[KasaAngola ADMIN] Desbloqueio de: '+_tit+'. CODIGO: *'+_cod+'*'),'_blank');};
+}
+function verifCod(){
+  if(!imovel)return;var id=imovel.id;var ent=document.getElementById('inpCod').value.trim();
+  if(ent.length!==4){document.getElementById('errCod').textContent='Insere os 4 digitos.';document.getElementById('errCod').style.display='block';return;}
+  var cor=cods[id];if(!cor){try{cor=JSON.parse(localStorage.getItem('ka_cods')||'{}')[id];}catch(e){}}
+  if(cor&&ent===cor){
+    desbl[id]=true;delete cods[id];
+    if(user){var dp=LS('ka_db_'+user.email)||{};dp[id]=true;LS('ka_db_'+user.email,dp);}
+    fechaPag();var nd=parseInt(document.getElementById('stDesb').textContent)||0;
+    document.getElementById('stDesb').textContent=nd+1;if(user)LS('ka_ndesb_'+user.email,nd+1);
+    alert('Contacto desbloqueado!');abrirDet(id);
+  } else {document.getElementById('errCod').textContent='Codigo incorrecto.';document.getElementById('errCod').style.display='block';document.getElementById('inpCod').value='';}
+}
+
+// ══ CHAT ══
+function renderChats(){
+  if(!chats.length){document.getElementById('chatLista').innerHTML='<div style="text-align:center;padding:40px;color:#444"><div style="font-size:40px;margin-bottom:10px">&#128172;</div><div>Nenhuma conversa ainda</div></div>';return;}
+  var h='';for(var i=0;i<chats.length;i++){var c=chats[i];var ul=c.msgs.length?c.msgs[c.msgs.length-1].t:'...';h+='<div class="ci" onclick="abrirChat('+i+')"><div class="cav">'+c.emoji+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">'+c.nome+'</div><div style="font-size:12px;color:#444;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+ul+'</div></div></div>';}
+  document.getElementById('chatLista').innerHTML=h;
+}
+function abrirChat(i){chatIdx=i;var c=chats[i];document.getElementById('chatWin').classList.add('on');document.getElementById('chatCab').textContent=c.nome+' - '+c.sobre;renderMsgs();}
+function fecharChat(){document.getElementById('chatWin').classList.remove('on');}
+function renderMsgs(){var ms=chats[chatIdx].msgs;var h='';for(var i=0;i<ms.length;i++){var m=ms[i];h+='<div class="msg '+(m.e?'env':'rec')+'">'+m.t+'<div style="font-size:10px;color:#444;margin-top:3px;text-align:right">'+m.h+'</div></div>';}var el=document.getElementById('msgsEl');el.innerHTML=h;el.scrollTop=el.scrollHeight;}
+function enviarMsg(){
+  var inp=document.getElementById('msgInp');var tx=inp.value.trim();if(!tx)return;
+  if(/(\+?244[\s\-]?\d{3}[\s\-]?\d{3}|\b\d{9}\b)/.test(tx)){alert('Por seguranca, numeros de telefone nao sao permitidos no chat.');return;}
+  var h=new Date().getHours()+':'+String(new Date().getMinutes()).padStart(2,'0');
+  chats[chatIdx].msgs.push({t:tx,e:true,h:h});inp.value='';renderMsgs();
+  var rs=['Obrigado pelo interesse!','A casa esta disponivel.','Quando quer visitar?','Desbloqueie o contacto para marcarmos.'];
+  setTimeout(function(){chats[chatIdx].msgs.push({t:rs[Math.floor(Math.random()*rs.length)],e:false,h:h});renderMsgs();},1000);
+}
+function inicChat(){
+  if(!imovel)return;fechaDet();
+  for(var i=0;i<chats.length;i++){if(chats[i].imovelId===imovel.id){goTo('chat');abrirChat(i);return;}}
+  chats.unshift({id:Date.now(),nome:imovel.prop||'Proprietario',emoji:(imovel.prop||'P')[0].toUpperCase(),sobre:imovel.titulo,imovelId:imovel.id,msgs:[]});
+  goTo('chat');abrirChat(0);
+}
+
+// ══ PUBLICAR ══
+function compFoto(b64,mW,q,cb){var img=new Image();img.onload=function(){var w=img.width,h=img.height;if(w>mW){h=Math.round(h*mW/w);w=mW;}var c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);cb(c.toDataURL('image/jpeg',q));};img.src=b64;}
+function compFotos(arr,cb){if(!arr||!arr.length){cb([]);return;}var res=[],done=0;for(var i=0;i<arr.length;i++){(function(idx,f){compFoto(f,800,0.6,function(c){res[idx]=c;done++;if(done===arr.length)cb(res);});})(i,arr[i]);}};
+function loadFotos(e){var fs=Array.prototype.slice.call(e.target.files);var r=5-fotos.length;if(!r){alert('Maximo 5 fotos.');return;}fs=fs.slice(0,r);var done=0;for(var i=0;i<fs.length;i++){(function(f){var rd=new FileReader();rd.onload=function(ev){fotos.push(ev.target.result);done++;if(done===fs.length)renderFotos();};rd.readAsDataURL(f);})(fs[i]);}e.target.value='';}
+function renderFotos(){var a=document.getElementById('areaFotos');if(!a)return;var h='';for(var i=0;i<fotos.length;i++){h+='<div class="ft"><img src="'+fotos[i]+'"/><button class="fdel" onclick="delFoto('+i+')">X</button></div>';}if(fotos.length<5)h+='<div class="fadd" onclick="document.getElementById(\'inpFotos\').click()"><span style="font-size:22px">+</span><span>Foto</span></div>';a.innerHTML=h;}
+function delFoto(i){fotos.splice(i,1);renderFotos();}
+function setMedia(m){
+  var bF=document.getElementById('mFoto'),bV=document.getElementById('mVideo'),pF=document.getElementById('pFotos'),pV=document.getElementById('pVideo');
+  if(m==='foto'){bF.style.background='#cc0000';bF.style.color='#fff';bF.style.border='none';bV.style.background='#1a1a1a';bV.style.color='#777';bV.style.border='1px solid #2e2e2e';pF.style.display='block';pV.style.display='none';}
+  else{bV.style.background='#cc0000';bV.style.color='#fff';bV.style.border='none';bF.style.background='#1a1a1a';bF.style.color='#777';bF.style.border='1px solid #2e2e2e';pF.style.display='none';pV.style.display='block';}
+}
+function loadVideo(e){var f=e.target.files[0];if(!f)return;if(f.size>50*1024*1024){alert('Video muito grande. Maximo 50MB.');return;}videoBlob=f;var url=URL.createObjectURL(f);var pv=document.getElementById('prevVid');pv.src=url;pv.style.display='block';document.getElementById('areaVid').style.display='none';document.getElementById('btnRmVid').style.display='block';}
+function rmVideo(){videoBlob=null;var pv=document.getElementById('prevVid');if(pv){pv.src='';pv.style.display='none';}document.getElementById('areaVid').style.display='block';document.getElementById('btnRmVid').style.display='none';document.getElementById('inpVideo').value='';}
+function abrirPub(){tipo='alugar';document.getElementById('tipA').className='fbtn on';document.getElementById('tipV').className='fbtn';fillProvs('pubProv');fotos=[];renderFotos();videoBlob=null;rmVideo();setMedia('foto');document.getElementById('mPub').classList.add('on');}
+function fechaPub(){document.getElementById('mPub').classList.remove('on');}
+function setTipo(t){tipo=t;document.getElementById('tipA').className='fbtn'+(t==='alugar'?' on':'');document.getElementById('tipV').className='fbtn'+(t==='vender'?' on':'');}
+function publicar(){
+  var tit=document.getElementById('pubTit').value.trim();
+  var preco=parseP(document.getElementById('pubPreco').value);
+  var prov=document.getElementById('pubProv').value;
+  if(!tit||!preco||!prov){alert('Preenche o titulo, preco e provincia!');return;}
+  var mun=document.getElementById('pubMun').value||'';
+  var id='a'+Date.now();
+  var novo={id:id,tipo:tipo,titulo:tit,zona:prov,municipio:mun,preco:preco,
+    quartos:parseInt(document.getElementById('pubQ').value)||1,
+    area:parseInt(document.getElementById('pubArea').value)||80,
+    fotos:fotos.slice(),foto:fotos.length?fotos[0]:null,
+    desc:document.getElementById('pubDesc').value.trim()||'Imovel disponivel.',
+    prop:user?user.nome:'Proprietario',autorEmail:user?user.email:'',
+    tel:document.getElementById('pubTel').value.trim()||'+244 900 000 000',
+    morada:(mun?mun+', ':'')+prov+', Angola',
+    verificado:!!(user&&temDocs(user)),criadoEm:Date.now()};
+  fechaPub();fotos=[];
+  document.getElementById('pubTit').value='';document.getElementById('pubPreco').value='';
+  document.getElementById('pubDesc').value='';document.getElementById('pubTel').value='';
+  document.getElementById('precoFmt').style.display='none';
+  ans.unshift(novo);LS('ka_a',ans);goTo('inicio');renderList();alert('Anuncio publicado!');
+  // Video
+  if(videoBlob){
+    var vr=new FileReader();vr.onload=function(ev){novo.videoUrl=ev.target.result;for(var i=0;i<ans.length;i++){if(ans[i].id===id){ans[i].videoUrl=novo.videoUrl;break;}}LS('ka_a',ans);if(FB())db.collection('anuncios').doc(id).update({videoUrl:novo.videoUrl}).catch(function(){});};vr.readAsDataURL(videoBlob);videoBlob=null;
+  }
+  if(FB()){compFotos(novo.fotos,function(fc){var nfb=Object.assign({},novo);nfb.fotos=fc;nfb.foto=fc.length?fc[0]:(novo.foto||null);db.collection('anuncios').doc(id).set(nfb).catch(function(){var ns=Object.assign({},novo);ns.fotos=[];ns.foto=null;db.collection('anuncios').doc(id).set(ns).catch(function(){});});});}
+}
+
+// ══ FOTO PERFIL ══
+function mudaFoto(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    var img=ev.target.result;
+    // Comprimir foto de perfil antes de guardar
+    var im=new Image();
+    im.onload=function(){
+      var c=document.createElement('canvas');
+      var max=300;var w=im.width,h=im.height;
+      if(w>max){h=Math.round(h*max/w);w=max;}
+      c.width=w;c.height=h;
+      c.getContext('2d').drawImage(im,0,0,w,h);
+      var compressed=c.toDataURL('image/jpeg',0.7);
+      // Actualizar localmente
+      if(user){
+        user.photo=compressed;
+        for(var i=0;i<users.length;i++){if(users[i].email===user.email){users[i].photo=compressed;break;}}
+        LS('ka_u',users);
+        // Guardar no Firebase para todos os dispositivos
+        if(FB()){
+          db.collection('users').doc(user.email).update({photo:compressed})
+            .catch(function(){console.warn('Erro ao guardar foto no Firebase');});
+        }
+      }
+      document.getElementById('profAv').innerHTML='<img src="'+compressed+'"/>';
+      document.getElementById('avatarTopo').innerHTML='<img src="'+compressed+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>';
+    };
+    im.src=img;
+  };
+  r.readAsDataURL(f);
+}
+
+// ══ EDITAR PERFIL ══
+function editarPerfil(){if(!user)return;document.getElementById('eTel').value=user.phone||'';document.getElementById('eEmail').value=user.email||'';document.getElementById('eSenha').value='';document.getElementById('editErr').style.display='none';document.getElementById('mEdit').classList.add('on');}
+function fechaEdit(){document.getElementById('mEdit').classList.remove('on');}
+function salvarPerfil(){
+  var tel=document.getElementById('eTel').value.trim();var em=document.getElementById('eEmail').value.trim().toLowerCase();var pw=document.getElementById('eSenha').value.trim();
+  var err=document.getElementById('editErr');
+  if(!em){err.textContent='Email obrigatorio.';err.style.display='block';return;}
+  if(em!==user.email){for(var i=0;i<users.length;i++){if(users[i].email===em){err.textContent='Email ja em uso.';err.style.display='block';return;}}}
+  if(pw&&pw.length<4){err.textContent='Senha muito curta.';err.style.display='block';return;}
+  var old=user.email;user.phone=tel||user.phone;user.email=em;if(pw)user.senha=H(pw);
+  for(var j=0;j<users.length;j++){if(users[j].email===old){users[j]=user;break;}}LS('ka_u',users);LS('ka_s',{email:em});
+  document.getElementById('pTel').textContent=user.phone||'';document.getElementById('pEmail').textContent=user.email;
+  fechaEdit();alert('Perfil actualizado!');
+}
+
+// ══ MEUS ANUNCIOS ══
+function meusAnuncios(){
+  if(!user)return;var meus=ans.filter(function(a){return a.autorEmail===user.email;});
+  var body=document.getElementById('meusBody');body.innerHTML='';
+  if(!meus.length){body.innerHTML='<div style="text-align:center;padding:40px;color:#555"><div style="font-size:40px;margin-bottom:10px">&#127968;</div><div>Ainda nao tens anuncios.</div><button onclick="fechaMeus();abrirPub();" style="margin-top:16px;background:#cc0000;color:#fff;border:none;border-radius:12px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer">+ Publicar agora</button></div>';document.getElementById('mMeus').classList.add('on');return;}
+  for(var i=0;i<meus.length;i++){
+    (function(a){
+      var div=document.createElement('div');div.style.cssText='background:#111;border:1px solid #2e2e2e;border-radius:12px;padding:12px;margin-bottom:10px';
+      var vt=a.vendido?(' <span style="background:#7c3aed;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700">'+(a.vendido==='vendido'?'VENDIDO':'ARRENDADO')+'</span>'):'<span style="background:#16a34a;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700"> DISPONIVEL</span>';
+      var im=a.fotos&&a.fotos.length?'<img src="'+a.fotos[0]+'" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px"/>':'';
+      div.innerHTML=im+'<div style="font-size:13px;font-weight:700">'+a.titulo+vt+'</div><div style="font-size:11px;color:#777;margin-top:2px">&#128205; '+a.zona+(a.municipio?' · '+a.municipio:'')+'</div><div style="font-size:13px;color:#cc0000;font-weight:700;margin-top:4px">'+fmtP(a.preco,a.tipo)+'</div><div style="display:flex;gap:8px;margin-top:8px"><button class="bv" style="flex:1;padding:7px;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;font-size:12px;cursor:pointer">&#128065; Ver</button><button class="bd" style="flex:1;padding:7px;background:#2a0000;border:1px solid #cc0000;border-radius:8px;color:#ff6666;font-size:12px;cursor:pointer">&#128465; Apagar</button></div>';
+      div.querySelector('.bv').onclick=function(){fechaMeus();abrirDet(a.id);};
+      div.querySelector('.bd').onclick=function(){if(confirm('Apagar este anuncio?')){if(FB()){db.collection('anuncios').doc(a.id).delete().then(function(){ans=ans.filter(function(x){return x.id!==a.id;});LS('ka_a',ans);meusAnuncios();renderList();}).catch(function(e){alert('Erro: '+e.message);});}else{ans=ans.filter(function(x){return x.id!==a.id;});LS('ka_a',ans);meusAnuncios();renderList();}}};
+      body.appendChild(div);
+    })(meus[i]);
+  }
+  document.getElementById('mMeus').classList.add('on');
+}
+function fechaMeus(){document.getElementById('mMeus').classList.remove('on');}
+
+// ══ ADMIN ══
+var admAba='an';
+function abaAdmin(a){
+  admAba=a;
+  var tabs={an:'abAn',us:'abUs',vis:'abVis'};
+  Object.keys(tabs).forEach(function(k){var b=document.getElementById(tabs[k]);if(b){if(k===a){b.style.background='#cc0000';b.style.color='#fff';b.style.border='none';}else{b.style.background='#1a1a1a';b.style.color='#777';b.style.border='1px solid #2e2e2e';}}});
+  document.getElementById('painelPesqUs').style.display=a==='us'?'block':'none';
+  if(a==='an')renderAdmAns();else if(a==='us')renderUs();else renderVisual();
+}
+function renderAdmin(){
+  if(!isAdmin())return;
+  document.getElementById('adAn').textContent=ans.length;
+  document.getElementById('adVend').textContent=ans.filter(function(a){return a.vendido==='vendido';}).length;
+  document.getElementById('adArr').textContent=ans.filter(function(a){return a.vendido==='arrendado';}).length;
+  if(FB())db.collection('users').get().then(function(s){document.getElementById('adUs').textContent=s.size;}).catch(function(){document.getElementById('adUs').textContent=users.length;});
+  else document.getElementById('adUs').textContent=users.length;
+  if(admAba==='an')renderAdmAns();else if(admAba==='us')renderUs();else renderVisual();
+}
+function renderAdmAns(){
+  var body=document.getElementById('adminBody');body.innerHTML='';
+  if(!ans.length){body.innerHTML='<div style="text-align:center;padding:40px;color:#444">Nenhum anuncio ainda.</div>';return;}
+  for(var i=0;i<ans.length;i++){
+    (function(a){
+      var div=document.createElement('div');div.style.cssText='background:#1a1a1a;border:1px solid #2e2e2e;border-radius:12px;padding:12px;margin-bottom:10px';
+      var vt=a.vendido?(' <span style="background:#7c3aed;color:#fff;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:700">'+(a.vendido==='vendido'?'VENDIDO':'ARRENDADO')+'</span>'):'';
+      div.innerHTML='<div style="font-size:13px;font-weight:700">'+a.titulo+vt+'</div><div style="font-size:11px;color:#777;margin-top:2px">'+a.zona+(a.municipio?' - '+a.municipio:'')+'</div><div style="font-size:11px;color:#555;margin-top:2px">&#128100; '+a.prop+'</div><div style="font-size:12px;color:#cc0000;font-weight:700;margin-top:4px">'+fmtP(a.preco,a.tipo)+'</div><div style="margin-top:8px"><button class="bg" style="width:100%;padding:7px;background:#333;border:none;border-radius:8px;color:#fff;font-size:12px;cursor:pointer">&#9881; Gerir</button></div>';
+      div.querySelector('.bg').onclick=function(){abrirAdmAn(a.id);};
+      document.getElementById('adminBody').appendChild(div);
+    })(ans[i]);
+  }
+}
+function abrirAdmAn(id){if(!isAdmin())return;admAnId=id;var a=null;for(var i=0;i<ans.length;i++){if(ans[i].id===id){a=ans[i];break;}}if(!a)return;document.getElementById('admAnTit').textContent=a.titulo;document.getElementById('mAdmAn').classList.add('on');}
+function fechaAdmAn(){document.getElementById('mAdmAn').classList.remove('on');admAnId=null;}
+document.getElementById('btnVend').onclick=function(){admMarcar('vendido');};
+document.getElementById('btnArr').onclick=function(){admMarcar('arrendado');};
+document.getElementById('btnDes').onclick=function(){admDesmarcar();};
+document.getElementById('btnAp').onclick=function(){if(confirm('Apagar este anuncio?'))admApagar();};
+document.getElementById('btnApTodos').onclick=function(){admApagarTodos();};
+function admMarcar(st){
+  if(!admAnId)return;var t=Date.now();
+  for(var i=0;i<ans.length;i++){if(ans[i].id===admAnId){ans[i].vendido=st;ans[i].vendidoEm=t;break;}}
+  if(FB())db.collection('anuncios').doc(admAnId).update({vendido:st,vendidoEm:t}).catch(function(){LS('ka_a',ans);});else LS('ka_a',ans);
+  fechaAdmAn();renderAdmin();renderList();alert('Marcado como '+st.toUpperCase()+'!');
+}
+function admDesmarcar(){
+  if(!admAnId)return;
+  for(var i=0;i<ans.length;i++){if(ans[i].id===admAnId){delete ans[i].vendido;delete ans[i].vendidoEm;break;}}
+  if(FB())db.collection('anuncios').doc(admAnId).update({vendido:firebase.firestore.FieldValue.delete(),vendidoEm:firebase.firestore.FieldValue.delete()}).catch(function(){LS('ka_a',ans);});else LS('ka_a',ans);
+  fechaAdmAn();renderAdmin();renderList();
+}
+function admApagar(){
+  if(!admAnId)return;var id=admAnId;fechaAdmAn();
+  ans=ans.filter(function(a){return a.id!==id;});LS('ka_a',ans);renderAdmin();renderList();
+  if(FB())db.collection('anuncios').doc(id).delete().then(function(){alert('Anuncio apagado!');}).catch(function(e){alert('Erro: '+e.message);});
+  else alert('Anuncio apagado!');
+}
+function admApagarTodos(){
+  if(!admAnId)return;var em='';for(var i=0;i<ans.length;i++){if(ans[i].id===admAnId){em=ans[i].autorEmail;break;}}
+  if(!em){alert('Proprietario nao identificado.');return;}
+  var tot=ans.filter(function(a){return a.autorEmail===em;}).length;
+  if(!confirm('Apagar '+tot+' anuncio(s) de "'+em+'"?'))return;
+  ans=ans.filter(function(a){return a.autorEmail!==em;});LS('ka_a',ans);
+  fechaAdmAn();renderAdmin();renderList();
+  if(FB()){var ps=[];ans.forEach(function(a){if(a.autorEmail===em)ps.push(db.collection('anuncios').doc(a.id).delete());});Promise.all(ps).catch(function(){});}
+  alert('Todos os anuncios apagados!');
+}
+
+// ══ ADMIN UTILIZADORES ══
+function renderUs(){
+  if(!isAdmin())return;var body=document.getElementById('adminBody');
+  body.innerHTML='<div style="text-align:center;padding:20px;color:#555">A carregar...</div>';
+  var q=(document.getElementById('pesqUs')||{value:''}).value.toLowerCase();
+  var reg=(document.getElementById('filRegiao')||{value:''}).value;
+  if(FB()){db.collection('users').get().then(function(snap){var ul=[];snap.forEach(function(d){ul.push(d.data());});preencheRegioes(ul);mostraUs(ul,q,reg);}).catch(function(){mostraUs(users,q,reg);});}
+  else{preencheRegioes(users);mostraUs(users,q,reg);}
+}
+function preencheRegioes(ul){
+  var sel=document.getElementById('filRegiao');if(!sel)return;var regs={};ans.forEach(function(a){if(a.zona)regs[a.zona]=true;});
+  var actual=sel.value;var o='<option value="">Todas as regioes</option>';
+  Object.keys(regs).sort().forEach(function(r){var c=ul.filter(function(u){return ans.some(function(a){return a.autorEmail===u.email&&a.zona===r;});}).length;if(c>0)o+='<option value="'+r+'"'+(actual===r?' selected':'')+'>&#128205; '+r+' ('+c+')</option>';});
+  sel.innerHTML=o;
+}
+function mostraUs(ul,q,reg){
+  var body=document.getElementById('adminBody');body.innerHTML='';
+  var fil=ul.filter(function(u){
+    if(q&&(u.nome||'').toLowerCase().indexOf(q)<0&&(u.email||'').toLowerCase().indexOf(q)<0&&(u.phone||'').toLowerCase().indexOf(q)<0)return false;
+    if(reg&&!ans.some(function(a){return a.autorEmail===u.email&&a.zona===reg;}))return false;
+    return true;
+  });
+  if(!fil.length){body.innerHTML='<div style="text-align:center;padding:40px;color:#444">Nenhum utilizador encontrado.</div>';return;}
+  for(var i=0;i<fil.length;i++){
+    (function(u){
+      var meus=ans.filter(function(a){return a.autorEmail===u.email;}).length;
+      var div=document.createElement('div');div.style.cssText='background:#1a1a1a;border:1px solid '+(u.bloqueado?'#cc0000':'#2e2e2e')+';border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer';
+      var regs=[...new Set(ans.filter(function(a){return a.autorEmail===u.email;}).map(function(a){return a.zona;}))].filter(Boolean);
+      div.innerHTML='<div style="display:flex;align-items:center;gap:10px"><div style="width:40px;height:40px;border-radius:50%;background:'+(u.bloqueado?'#7f1d1d':'#cc0000')+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0">'+(u.nome||'?')[0].toUpperCase()+'</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">'+u.nome+(u.verificado?' <span style="background:#16a34a;color:#fff;font-size:9px;padding:2px 6px;border-radius:10px">Verificado</span>':'')+(u.bloqueado?' <span style="background:#cc0000;color:#fff;font-size:9px;padding:2px 6px;border-radius:10px">BLOQUEADO</span>':'')+'</div><div style="font-size:11px;color:#555;margin-top:1px">'+u.email+'</div><div style="font-size:11px;color:#555">'+u.phone+' - '+meus+' anuncio(s)</div>'+(regs.length?'<div style="font-size:10px;color:#7c3aed;margin-top:2px">&#128205; '+regs.join(' - ')+'</div>':'')+'</div><span style="color:#555;font-size:18px">&#8250;</span></div>';
+      div.onclick=function(){abrirAdmUs(u);};body.appendChild(div);
+    })(fil[i]);
+  }
+}
+function abrirAdmUs(u){
+  if(!isAdmin())return;admUsEmail=u.email;
+  document.getElementById('admUsNome').textContent=u.nome||'Sem nome';document.getElementById('admUsEmail').textContent=u.email;
+  var meus=ans.filter(function(a){return a.autorEmail===u.email;}).length;
+  var regs=[...new Set(ans.filter(function(a){return a.autorEmail===u.email;}).map(function(a){return a.zona;}))].filter(Boolean);
+  document.getElementById('admUsInfo').innerHTML='&#128100; <strong>Nome:</strong> '+u.nome+'<br>&#128231; <strong>Email:</strong> '+u.email+'<br>&#128222; <strong>Telefone:</strong> '+(u.phone||'-')+'<br>&#127968; <strong>Anuncios:</strong> '+meus+'<br>'+(regs.length?'&#128205; <strong>Regioes:</strong> '+regs.join(', ')+'<br>':'')+'&#9989; <strong>Verificado:</strong> '+(u.verificado?'Sim':'Nao')+'<br>&#128683; <strong>Estado:</strong> '+(u.bloqueado?'<span style="color:#ff6666">BLOQUEADO</span>':'<span style="color:#16a34a">Activo</span>');
+  document.getElementById('btnBloquear').style.display=u.bloqueado?'none':'block';document.getElementById('btnDesbloquear').style.display=u.bloqueado?'block':'none';
+  document.getElementById('mAdmUs').classList.add('on');
+}
+function fechaAdmUs(){document.getElementById('mAdmUs').classList.remove('on');admUsEmail=null;}
+document.getElementById('btnBloquear').onclick=function(){if(!admUsEmail||!confirm('Bloquear esta conta?'))return;if(FB())db.collection('users').doc(admUsEmail).update({bloqueado:true}).then(function(){fechaAdmUs();renderUs();alert('Conta bloqueada!');}).catch(function(e){alert('Erro: '+e.message);});else{for(var i=0;i<users.length;i++){if(users[i].email===admUsEmail){users[i].bloqueado=true;break;}}LS('ka_u',users);fechaAdmUs();renderUs();alert('Conta bloqueada!');}};
+document.getElementById('btnDesbloquear').onclick=function(){if(!admUsEmail)return;if(FB())db.collection('users').doc(admUsEmail).update({bloqueado:false}).then(function(){fechaAdmUs();renderUs();alert('Conta desbloqueada!');}).catch(function(e){alert('Erro: '+e.message);});else{for(var i=0;i<users.length;i++){if(users[i].email===admUsEmail){users[i].bloqueado=false;break;}}LS('ka_u',users);fechaAdmUs();renderUs();alert('Conta desbloqueada!');}};
+document.getElementById('btnApagarUs').onclick=function(){
+  if(!admUsEmail||!confirm('Apagar conta E todos os anuncios permanentemente?'))return;var em=admUsEmail;
+  if(FB()){var ps=[];ans.forEach(function(a){if(a.autorEmail===em)ps.push(db.collection('anuncios').doc(a.id).delete());});ps.push(db.collection('users').doc(em).delete());ps.push(db.collection('users_docs').doc(em).delete());Promise.all(ps).then(function(){ans=ans.filter(function(a){return a.autorEmail!==em;});users=users.filter(function(u){return u.email!==em;});LS('ka_a',ans);LS('ka_u',users);fechaAdmUs();renderAdmin();renderList();alert('Conta apagada!');}).catch(function(e){alert('Erro: '+e.message);});}
+  else{ans=ans.filter(function(a){return a.autorEmail!==em;});users=users.filter(function(u){return u.email!==em;});LS('ka_a',ans);LS('ka_u',users);fechaAdmUs();renderAdmin();renderList();alert('Conta apagada!');}
+};
+
+// ══ ADMIN VISUAL ══
+function renderVisual(){
+  var cfg=LS('ka_cfg')||{};var body=document.getElementById('adminBody');
+  body.innerHTML='<div style="font-size:14px;font-weight:700;margin-bottom:14px">Personalizar Plataforma</div>'
+    +'<div style="background:#111;border-radius:12px;padding:14px;margin-bottom:12px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">&#128247; Logotipo</div>'
+    +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">'
+    +'<div id="pLogoAdm" style="width:60px;height:60px;border-radius:12px;background:linear-gradient(135deg,#cc0000,#ff4444);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden">'+(cfg.logoUrl?'<img src="'+cfg.logoUrl+'" style="width:100%;height:100%;object-fit:cover"/>':'&#127968;')+'</div>'
+    +'<div style="flex:1"><button id="btnCarrLogo" style="width:100%;padding:10px;background:#1a1a1a;border:1px solid #2e2e2e;border-radius:8px;color:#f2f2f2;font-size:13px;cursor:pointer;margin-bottom:6px">&#128247; Carregar logo</button>'+(cfg.logoUrl?'<button onclick="rmLogo()" style="width:100%;padding:8px;background:#2a0000;border:1px solid #cc0000;border-radius:8px;color:#ff6666;font-size:12px;cursor:pointer">&#128465; Remover logo</button>':'')+'</div></div>'
+    +'<input type="file" id="inpLogoAdm" accept="image/*" style="display:none" onchange="loadLogo(event)"/>'
+    +'</div>'
+    +'<div style="background:#111;border-radius:12px;padding:14px;margin-bottom:12px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:10px">&#9999; Nome e Slogan</div>'
+    +'<input class="inp" id="editNome" value="'+(cfg.nomeApp||'KasaAngola')+'" placeholder="Nome da app" style="margin-bottom:8px"/>'
+    +'<input class="inp" id="editSlogan" value="'+(cfg.slogan||'Sem intermediario - Proprietario directo')+'" placeholder="Slogan"/>'
+    +'<button onclick="salvarVisual()" style="width:100%;padding:12px;background:#cc0000;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Guardar</button>'
+    +'</div>';
+  setTimeout(function(){var b=document.getElementById('btnCarrLogo');if(b)b.onclick=function(){document.getElementById('inpLogoAdm').click();};},100);
+}
+function loadLogo(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){var img=ev.target.result;var cfg=LS('ka_cfg')||{};cfg.logoUrl=img;LS('ka_cfg',cfg);if(FB())db.collection('config').doc('visual').set(cfg).catch(function(){});aplicarConfig(cfg);var p=document.getElementById('pLogoAdm');if(p)p.innerHTML='<img src="'+img+'" style="width:100%;height:100%;object-fit:cover"/>';alert('Logo actualizado!');};r.readAsDataURL(f);}
+function rmLogo(){var cfg=LS('ka_cfg')||{};delete cfg.logoUrl;LS('ka_cfg',cfg);if(FB())db.collection('config').doc('visual').set(cfg).catch(function(){});aplicarConfig(cfg);renderVisual();}
+function salvarVisual(){var n=(document.getElementById('editNome')||{value:'KasaAngola'}).value.trim()||'KasaAngola';var s=(document.getElementById('editSlogan')||{value:''}).value.trim();var cfg=LS('ka_cfg')||{};cfg.nomeApp=n;cfg.slogan=s;LS('ka_cfg',cfg);if(FB())db.collection('config').doc('visual').set(cfg).catch(function(){});aplicarConfig(cfg);alert('Visual actualizado!');}
+function aplicarConfig(cfg){
+  if(!cfg)return;
+  if(cfg.logoUrl){var la=document.getElementById('logoAuth');if(la)la.innerHTML='<img src="'+cfg.logoUrl+'" style="width:100%;height:100%;object-fit:cover"/>';var lt=document.getElementById('logoTopoImg');if(lt)lt.style.display='block';var le=document.getElementById('logoTopoEl');if(le)le.src=cfg.logoUrl;}
+  else{var la2=document.getElementById('logoAuth');if(la2)la2.innerHTML='&#127968;';var lt2=document.getElementById('logoTopoImg');if(lt2)lt2.style.display='none';}
+  if(cfg.nomeApp){var p1=cfg.nomeApp.slice(0,4),p2=cfg.nomeApp.slice(4);var na=document.getElementById('nomeAuth');if(na)na.innerHTML='<span style="color:#fff">'+p1+'</span><span style="color:#cc0000">'+p2+'</span>';var nt=document.getElementById('nomeTopo');if(nt)nt.innerHTML=p1+'<span>'+p2+'</span>';}
+  if(cfg.slogan){var sa=document.getElementById('sloganAuth');if(sa)sa.textContent=cfg.slogan;}
+}
+function carregarConfig(){
+  if(FB())db.collection('config').doc('visual').get().then(function(d){var c=d.exists?d.data():(LS('ka_cfg')||{});LS('ka_cfg',c);aplicarConfig(c);}).catch(function(){aplicarConfig(LS('ka_cfg')||{});});
+  else aplicarConfig(LS('ka_cfg')||{});
+}
+
+// ══ AUTO-LOGIN ══
+carregarConfig();
+(function(){
+  var s=LS('ka_s');
+  if(!s||!s.email){hideLoad();document.getElementById('auth').classList.add('vis');return;}
+  var u=null;for(var i=0;i<users.length;i++){if(users[i].email===s.email){u=users[i];break;}}
+  if(u){entrar(u);}
+  else if(FB()){
+    db.collection('users').doc(s.email).get().then(function(doc){
+      if(doc.exists){var ud=Object.assign({},doc.data(),{photo:null,docs:{}});users.push(ud);LS('ka_u',users);entrar(ud);}
+      else{LSdel('ka_s');hideLoad();document.getElementById('auth').classList.add('vis');}
+    }).catch(function(){hideLoad();document.getElementById('auth').classList.add('vis');});
+  } else {hideLoad();document.getElementById('auth').classList.add('vis');}
+})();
+</script>
+</body>
+</html>
